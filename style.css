@@ -6,9 +6,57 @@ img{
 
 p{
     margin:5px 10px;
+    font-size: 18px;
+}
+
+h5,h6{
+    margin:5px 10px;
+    margin-top: 20px;
 }
 
 .logo{
     height:50px ;
     width: auto;
+}
+
+.changingLabel{
+    font-size: 16px;
+    margin-left: 10px;
+    color: rgb(71, 70, 70);
+    margin-bottom: 10px;
+}
+
+.clear-cart{
+    margin-right: 38%;
+}
+
+.delete-button{
+    padding: 5px 15px;
+    float: right;
+}
+
+.result{
+    color: rgb(71, 70, 70);
+    margin-left: 5px;
+}
+
+.addCart{
+    margin-bottom: 30px;
+    margin-left: 10px;
+}
+
+.value{
+    height: 30px;
+    margin-left: 10px;
+    margin-right: 10px;
+    
+}
+
+.product-price{
+    font-size: 16px;
+    color: rgb(71, 70, 70);
+}
+
+.price{
+    font-weight: 700;
 }
