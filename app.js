@@ -1,44 +1,72 @@
 // GLOBAL VARIABLES
 let uniqueID
+let start = 0
+let end = 8
+let currentPage = 1
 
 // Fetching the product list from the API
 fetch('https://api.jsonbin.io/b/60d10c3c5ed58625fd162e87')
   .then(response => response.json())
-  .then(products => showProducts(products))
+  .then(function (data) {
+    localStorage.setItem('data', JSON.stringify(data))
+  })
+const products = JSON.parse(localStorage.getItem('data'))
+showProducts(products, start, end)
 
 // The function used to dispplay products on the screen
-showProducts = products => {
+function showProducts (products, start, end) {
   const productsDiv = document.querySelector('#Products')
-  products.forEach(product => {
-    const productName = document.createElement('h5')
-    const productDescription = document.createElement('p')
+  let prodID = 1
+
+  for (let i = start; i <= end; i++) {
+    const div1 = document.createElement('div')
+    div1.className = 'col-md-6 col-lg-4'
+    div1.id = 'div-1' + prodID
+
+    const div2 = document.createElement('div')
+    div2.className = 'panel panel-default'
+    div2.id = 'div-2' + prodID
+
+    const div3 = document.createElement('div')
+    div3.className = 'panel-body'
+    div3.id = 'div-3' + prodID
+
+    prodID++
+
+    const images = products[i].images
+    const productImage = document.createElement('img')
+    productImage.src = images[0]
+    div3.append(productImage)
+
+    const productName = document.createElement('h6')
     const productPrice = document.createElement('p')
 
-    productName.innerText = `Product name : ${product.title}`
-    productDescription.innerText = product.description
-    productPrice.innerText = `Product price :${product.price}$`
+    productName.innerText = `Product name : ${products[i].title}`
+    productPrice.innerText = `Product price : $${products[i].price}`
 
-    productsDiv.append(productName)
-    productsDiv.append(productDescription)
-
-    const images = product.images
-    images.forEach((element) => {
-      const productImage = document.createElement('img')
-      productImage.src = element
-      productsDiv.append(productImage)
-    })
-    productsDiv.append(productPrice)
-    createButton(product)
-  })
+    div3.append(productName)
+    div3.append(productPrice)
+    div2.append(div3)
+    div1.append(div2)
+    productsDiv.append(div1)
+    createButton(products[i], div1.id, div2.id, div3.id)
+  }
 }
 
 // Creating the add to cart button
-function createButton (data) {
+function createButton (data, id1, id2, id3) {
   const productsDiv = document.querySelector('#Products')
+  const div1 = document.getElementById(id1)
+  const div2 = document.getElementById(id2)
+  const div3 = document.getElementById(id3)
+
   const button = document.createElement('button')
   button.innerHTML = 'Add to Cart'
   button.className = 'addCart btn btn-primary'
-  productsDiv.append(button)
+  div3.append(button)
+  div2.append(div3)
+  div1.append(div2)
+  productsDiv.append(div1)
 
   button.onclick = function () {
     const count = parseInt(localStorage.getItem('noOfProducts'))
@@ -113,18 +141,21 @@ function createDeleteButton (name) {
     const data = JSON.parse(localStorage.getItem(name))
     const price = parseInt(localStorage.getItem('Price'))
     const count = parseInt(localStorage.getItem('noOfProducts'))
+    const eachProductCount = localStorage.getItem(name + 'number')
 
     const labelVal = localStorage.getItem(name + 'labelValue')
     if (labelVal !== null) {
       localStorage.setItem('Price', price - parseInt(labelVal))
       document.querySelector('.price span').textContent = price - parseInt(labelVal)
+      document.querySelector('.cart span').textContent = count - eachProductCount
+      localStorage.setItem('noOfProducts', count - eachProductCount)
     } else {
       localStorage.setItem('Price', price - parseInt(data.price))
       document.querySelector('.price span').textContent = price - parseInt(data.price)
+      document.querySelector('.cart span').textContent = count - 1
+      localStorage.setItem('noOfProducts', count - 1)
     }
 
-    document.querySelector('.cart span').textContent = count - 1
-    localStorage.setItem('noOfProducts', count - 1)
     localStorage.removeItem(name)
     localStorage.removeItem(name + 'labelValue')
     localStorage.removeItem(name + 'number')
@@ -193,6 +224,10 @@ function createQuantityform (name, data) {
       TotalPrice = TotalPrice - price
       localStorage.setItem('Price', TotalPrice)
       document.querySelector('.price span').textContent = TotalPrice
+
+      const currentCount = parseInt(localStorage.getItem('noOfProducts'))
+      localStorage.setItem('noOfProducts', currentCount - 1)
+      document.querySelector('.cart span').textContent = currentCount - 1
     }
   }
 
@@ -212,6 +247,10 @@ function createQuantityform (name, data) {
       TotalPrice = TotalPrice + price
       localStorage.setItem('Price', TotalPrice)
       document.querySelector('.price span').textContent = TotalPrice
+
+      const currentCount = parseInt(localStorage.getItem('noOfProducts'))
+      localStorage.setItem('noOfProducts', currentCount + 1)
+      document.querySelector('.cart span').textContent = currentCount + 1
     }
   }
   productDiv.append(label, result)
@@ -239,5 +278,32 @@ function createContent (name, data) {
   createQuantityform(productDiv.id, data)
 }
 
+function pageForward () {
+  if (currentPage < 19) {
+    start = start + 8
+    end = end + 8
+    currentPage++
+    const productsDiv = document.querySelector('#Products')
+    productsDiv.innerHTML = ''
+    document.getElementById('pageBack').className = 'page-item'
+    showProducts(products, start, end)
+  } else {
+    document.getElementById('pageForward').className = 'page-item disabled'
+  }
+}
+
+function pageBack () {
+  if (currentPage > 1) {
+    start = start - 8
+    end = end - 8
+    currentPage--
+    const productsDiv = document.querySelector('#Products')
+    productsDiv.innerHTML = ''
+    document.getElementById('pageForward').className = 'page-item'
+    showProducts(products, start, end)
+  } else {
+    document.getElementById('pageBack').className = 'page-item disabled'
+  }
+}
 // Calling all the initial functions
 onLoadCartState()
