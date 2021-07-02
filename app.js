@@ -1,19 +1,28 @@
 // GLOBAL VARIABLES
-let uniqueID
 let start = 0
 let end = 8
 let currentPage = 1
+let productArray = []
+let productCount = 0
 
+// --------------------------- INITIALISING -------------------------------------------
 // Fetching the product list from the API
-fetch('https://api.jsonbin.io/b/60d10c3c5ed58625fd162e87')
-  .then(response => response.json())
-  .then(function (data) {
-    localStorage.setItem('data', JSON.stringify(data))
-  })
-const products = JSON.parse(localStorage.getItem('data'))
-showProducts(products, start, end)
+getProducts('https://api.jsonbin.io/b/60d10c3c5ed58625fd162e87')
+let products = JSON.parse(localStorage.getItem('data'))
 
-// The function used to dispplay products on the screen
+showProducts(products, start, end)
+onLoadCartState()
+// -----------------------------------------------------------------------------------------
+
+// --------------------------- PRODUCT FETCH AND DISPLAY FUNCTIONS --------------------------
+// Fetching the products
+async function getProducts (url) {
+  let response = await fetch(url)
+  response = await response.json()
+  localStorage.setItem('data', JSON.stringify(response))
+}
+
+// The function used to display products on the screen
 function showProducts (products, start, end) {
   const productsDiv = document.querySelector('#Products')
   let prodID = 1
@@ -40,134 +49,69 @@ function showProducts (products, start, end) {
 
     const productName = document.createElement('h6')
     const productPrice = document.createElement('p')
+    const button = document.createElement('button')
+    button.innerHTML = 'Add to Cart'
+    button.className = 'addCart btn btn-primary'
+    button.onclick = addToCart
 
     productName.innerText = `Product name : ${products[i].title}`
     productPrice.innerText = `Product price : $${products[i].price}`
 
     div3.append(productName)
     div3.append(productPrice)
+    div3.append(button)
     div2.append(div3)
     div1.append(div2)
     productsDiv.append(div1)
-    createButton(products[i], div1.id, div2.id, div3.id)
+
+    // Storing the index of the product in main data array
+    localStorage.setItem(div3.id, i)
   }
 }
-
-// Creating the add to cart button
-function createButton (data, id1, id2, id3) {
-  const productsDiv = document.querySelector('#Products')
-  const div1 = document.getElementById(id1)
-  const div2 = document.getElementById(id2)
-  const div3 = document.getElementById(id3)
-
-  const button = document.createElement('button')
-  button.innerHTML = 'Add to Cart'
-  button.className = 'addCart btn btn-primary'
-  div3.append(button)
-  div2.append(div3)
-  div1.append(div2)
-  productsDiv.append(div1)
-
-  button.onclick = function () {
-    const count = parseInt(localStorage.getItem('noOfProducts'))
-    let id
-
-    // Checking if the product being added is the first one or not
-    if (count) {
-      uniqueID++
-      localStorage.setItem('noOfProducts', count + 1)
-      document.querySelector('.cart span').textContent = count + 1
-      localStorage.setItem(`Product ${uniqueID}`, JSON.stringify(data))
-      id = 'Product ' + uniqueID
-      localStorage.setItem('uniqueID', uniqueID)
-    } else {
-      uniqueID = 0
-      localStorage.setItem('noOfProducts', 1)
-      document.querySelector('.cart span').textContent = 1
-      localStorage.setItem(`Product ${uniqueID}`, JSON.stringify(data))
-      id = 'Product ' + uniqueID
-      localStorage.setItem('uniqueID', uniqueID)
-    }
-
-    // For price
-    let price = localStorage.getItem('Price')
-    price = parseInt(price)
-    if (price) {
-      localStorage.setItem('Price', price + parseInt(data.price))
-      document.querySelector('.price span').textContent = price + parseInt(data.price)
-    } else {
-      localStorage.setItem('Price', parseInt(data.price))
-      document.querySelector('.price span').textContent = parseInt(data.price)
-    }
-
-    // MODAL CONTENT IS HERE
-    createContent(id, data)
-  }
+// Function for add to cart buttom
+function addToCart (e) {
+  const id = e.target.parentElement.id
+  const index = parseInt(localStorage.getItem(id))
+  productArray[productCount] = products[index]
+  localStorage.setItem('productArray', JSON.stringify(productArray)) // Saving productArray in localstorage for the onload cart state
+  increaseTotalPrice(parseInt(products[index].price))
+  increaseCartCount()
+  productCount++
 }
 
-// To ensure cart keeps it state while you reload
+// -------------------------------------------------------------------------------
+
+// -------------------------- ONLOAD CART STATE FUNCTION--------------------------
 function onLoadCartState () {
-  const count = localStorage.getItem('noOfProducts')
-  const price = localStorage.getItem('Price')
+  const count = parseInt(localStorage.getItem('noOfProducts'))
+  const price = parseInt(localStorage.getItem('Price'))
+  const dataProducts = JSON.parse(localStorage.getItem('productArray'))
   if (count) {
     document.querySelector('.cart span').textContent = count
     document.querySelector('.price span').textContent = price
-  } else {
-    uniqueID = 0
-  }
-  uniqueID = localStorage.getItem('uniqueID')
-
-  for (let i = 0; i <= uniqueID; i++) {
-    const data = JSON.parse(localStorage.getItem(`Product ${i}`))
-
-    if (data !== null) {
-      const id = 'Product ' + i
-      createContent(id, data)
+    for (let i = 0; i < dataProducts.length; i++) {
+      productArray[i] = dataProducts[i]
     }
+    createModalContent()
   }
 }
-
-function createDeleteButton (name) {
-  const productDiv = document.getElementById(name)
-  const button = document.createElement('button')
-  button.innerHTML = 'X'
-  button.className = 'btn btn-danger delete-button'
-
-  productDiv.append(button)
-
-  button.onclick = function () {
-    document.getElementById(name).remove()
-
-    const data = JSON.parse(localStorage.getItem(name))
-    const price = parseInt(localStorage.getItem('Price'))
-    const count = parseInt(localStorage.getItem('noOfProducts'))
-    const eachProductCount = localStorage.getItem(name + 'number')
-
-    const labelVal = localStorage.getItem(name + 'labelValue')
-    if (labelVal !== null) {
-      localStorage.setItem('Price', price - parseInt(labelVal))
-      document.querySelector('.price span').textContent = price - parseInt(labelVal)
-      document.querySelector('.cart span').textContent = count - eachProductCount
-      localStorage.setItem('noOfProducts', count - eachProductCount)
-    } else {
-      localStorage.setItem('Price', price - parseInt(data.price))
-      document.querySelector('.price span').textContent = price - parseInt(data.price)
-      document.querySelector('.cart span').textContent = count - 1
-      localStorage.setItem('noOfProducts', count - 1)
-    }
-
-    localStorage.removeItem(name)
-    localStorage.removeItem(name + 'labelValue')
-    localStorage.removeItem(name + 'number')
-  }
-}
-
+// -----------------------------------------------------------------------------
+// -------------------------- CLEAR CART FUNCTION ------------------------------
 // CLEAR CART
 document.querySelector('.clear-cart').onclick = function () {
   document.getElementById('modal-values').remove()
+
+  // Saving data before clearing for next times
+  products = JSON.parse(localStorage.getItem('data'))
+  const end = parseInt(localStorage.getItem('div-39'))
   localStorage.clear()
+  localStorage.setItem('data', JSON.stringify(products))
   document.querySelector('.cart span').textContent = 0
   document.querySelector('.price span').textContent = 0
+
+  createIndex(end)
+  productCount = 0
+  productArray = []
 
   // Creating the div again for next addition
   const modalDiv = document.createElement('div')
@@ -176,9 +120,112 @@ document.querySelector('.clear-cart').onclick = function () {
   const mainModal = document.querySelector('.modal-body')
   mainModal.append(modalDiv)
 }
+// --------------------------------------------------------------------------------
 
-// Creating the quanitity increase and decrease option
-function createQuantityform (name, data) {
+// -------------------------- CART MODAL CONTENT------------------------------
+// For creating the modal content
+function createModalContent () {
+  const modalDiv = document.querySelector('.modal-values')
+  modalDiv.innerHTML = ''
+  for (let i = 0; i < productArray.length; i++) {
+    if (productArray[i] !== '') {
+      const productDiv = document.createElement('div')
+      productDiv.id = 'product' + i
+      const productName = document.createElement('h6')
+      const productPrice = document.createElement('p')
+
+      productPrice.className = 'product-price'
+      productName.innerText = `Product name : ${productArray[i].title}`
+      productPrice.innerText = `Product price : $ ${productArray[i].price}`
+
+      productDiv.append(productName)
+      productDiv.append(productPrice)
+      modalDiv.append(productDiv)
+
+      // Storing the data array with its div ID in local storage
+      localStorage.setItem(productDiv.id, JSON.stringify(productArray[i]))
+      localStorage.setItem(productDiv.id + 'prodIndex', i)
+
+      createDeleteButton(productDiv.id)
+      createQuantityForm(productDiv.id)
+    }
+  }
+}
+
+// Creating the delete button
+function createDeleteButton (name) {
+  const productDiv = document.getElementById(name)
+  const button = document.createElement('button')
+  button.innerHTML = 'X'
+  button.className = 'btn btn-danger delete-button'
+  button.onclick = deleteFunction
+  productDiv.append(button)
+}
+
+// Implementing the delete button fucntionality
+function deleteFunction (e) {
+  const id = e.target.parentElement.id
+
+  // Removing product from productArray as well
+  const prodIndex = parseInt(localStorage.getItem(id + 'prodIndex'))
+  productArray[prodIndex] = ''
+  localStorage.setItem('productArray', JSON.stringify(productArray))
+
+  const data = JSON.parse(localStorage.getItem(id))
+
+  const count = parseInt(document.getElementById(id + 'number').value)
+  for (let i = 1; i <= count; i++) {
+    decreaseTotalPrice(parseInt(data.price))
+    decreaseCartCount()
+  }
+  // Removing total div
+  document.getElementById(id).remove()
+}
+// -------------------------------------------------------------------------------------
+
+// -------------------------- CART COUNT AND TOTAL PRICE INCREASE & DECREASE --------------
+// Implementing decrease total price functionlaity
+function decreaseTotalPrice (currentPrice) {
+  const price = parseInt(localStorage.getItem('Price'))
+  localStorage.setItem('Price', price - currentPrice)
+  document.querySelector('.price span').textContent = price - currentPrice
+}
+
+// Implementing increase total price functionlaity
+function increaseTotalPrice (currentPrice) {
+  const price = parseInt(localStorage.getItem('Price'))
+  if (price) {
+    localStorage.setItem('Price', price + currentPrice)
+    document.querySelector('.price span').textContent = price + currentPrice
+  } else {
+    localStorage.setItem('Price', parseInt(currentPrice))
+    document.querySelector('.price span').textContent = currentPrice
+  }
+}
+// Increase total count function
+function increaseCartCount () {
+  const count = parseInt(localStorage.getItem('noOfProducts'))
+  if (count) {
+    localStorage.setItem('noOfProducts', count + 1)
+    document.querySelector('.cart span').textContent = count + 1
+  } else {
+    localStorage.setItem('noOfProducts', 1)
+    document.querySelector('.cart span').textContent = 1
+  }
+}
+
+// Decrease total count function
+function decreaseCartCount () {
+  const count = parseInt(localStorage.getItem('noOfProducts'))
+  localStorage.setItem('noOfProducts', count - 1)
+  document.querySelector('.cart span').textContent = count - 1
+}
+// ---------------------------------------------------------------------------------------------------
+
+// -------------------------- QUANTITY INCREASE AND DECREASE FORM ------------------------------
+
+// Creating the quantity form
+function createQuantityForm (name) {
   const productDiv = document.getElementById(name)
   const form = document.createElement('form')
   form.className = 'quantity'
@@ -188,7 +235,6 @@ function createQuantityform (name, data) {
   label.innerHTML = 'Current Product price: $'
   label.className = 'changingLabel'
 
-  const price = parseInt(data.price)
   result.id = name + 'label'
   result.className = 'result'
 
@@ -198,86 +244,74 @@ function createQuantityform (name, data) {
   num.className = 'value'
   num.disabled = true
 
-  const count = localStorage.getItem('noOfProducts')
-  const val = parseInt(localStorage.getItem(name + 'labelValue'))
-  if (count && !isNaN(val)) {
-    num.value = parseInt(localStorage.getItem(name + 'number'))
-    result.innerHTML = val
+  // Checking for the onload cart state
+  const count = parseInt(localStorage.getItem('noOfProducts'))
+  const currentPrice = parseInt(localStorage.getItem(name + 'currentPrice'))
+  if (count && !isNaN(currentPrice)) {
+    num.value = parseInt(localStorage.getItem(name + 'value'))
+    result.innerHTML = currentPrice
   } else {
+    result.innerHTML = parseInt(JSON.parse(localStorage.getItem(name)).price)
     num.value = 1
-    result.innerHTML = price
   }
 
   const btn1 = document.createElement('button')
   btn1.innerHTML = '-'
   btn1.type = 'button'
   btn1.className = 'btn btn-outline-secondary btn-sm'
-  btn1.onclick = function () {
-    let value = parseInt(document.getElementById(name + 'number').value)
-    value--
-    if (value > 0) {
-      let TotalPrice = parseInt(localStorage.getItem('Price'))
-      document.getElementById(name + 'number').value = value
-      result.innerHTML = price * value
-      localStorage.setItem(name + 'labelValue', (price * value))
-      localStorage.setItem(name + 'number', value)
-      TotalPrice = TotalPrice - price
-      localStorage.setItem('Price', TotalPrice)
-      document.querySelector('.price span').textContent = TotalPrice
-
-      const currentCount = parseInt(localStorage.getItem('noOfProducts'))
-      localStorage.setItem('noOfProducts', currentCount - 1)
-      document.querySelector('.cart span').textContent = currentCount - 1
-    }
-  }
+  btn1.onclick = minusButton
 
   const btn2 = document.createElement('button')
   btn2.innerHTML = '+'
   btn2.type = 'button'
   btn2.className = 'btn btn-outline-secondary btn-sm'
-  btn2.onclick = function () {
-    let value = parseInt(document.getElementById(name + 'number').value)
-    value++
-    if (value > 0) {
-      let TotalPrice = parseInt(localStorage.getItem('Price'))
-      document.getElementById(name + 'number').value = value
-      result.innerHTML = price * value
-      localStorage.setItem(name + 'labelValue', (price * value))
-      localStorage.setItem(name + 'number', value)
-      TotalPrice = TotalPrice + price
-      localStorage.setItem('Price', TotalPrice)
-      document.querySelector('.price span').textContent = TotalPrice
+  btn2.onclick = plusButton
 
-      const currentCount = parseInt(localStorage.getItem('noOfProducts'))
-      localStorage.setItem('noOfProducts', currentCount + 1)
-      document.querySelector('.cart span').textContent = currentCount + 1
-    }
-  }
   productDiv.append(label, result)
   form.append(btn1, num, btn2)
   productDiv.append(form)
 }
 
-// For creating the modal content
-function createContent (name, data) {
-  const productDiv = document.createElement('div')
-  productDiv.id = name
-  const modalDiv = document.querySelector('.modal-values')
-  const productName = document.createElement('h6')
-  const productPrice = document.createElement('p')
+// Function for the minus button
+function minusButton (e) {
+  const id = e.target.parentElement.parentElement.id
+  let value = parseInt(document.getElementById(id + 'number').value)
+  value--
+  if (value > 0) {
+    const price = parseInt(JSON.parse(localStorage.getItem(id)).price)
+    document.getElementById(id + 'number').value = value
+    document.getElementById(id + 'label').innerHTML = value * price
 
-  productPrice.className = 'product-price'
-  productName.innerText = `Product name : ${data.title}`
-  productPrice.innerText = `Product price : $ ${data.price}`
+    // Saving value of the quantity and the current product price for onload
+    localStorage.setItem(id + 'value', value)
+    localStorage.setItem(id + 'currentPrice', value * price)
 
-  productDiv.append(productName)
-  productDiv.append(productPrice)
-  modalDiv.append(productDiv)
-
-  createDeleteButton(productDiv.id)
-  createQuantityform(productDiv.id, data)
+    decreaseTotalPrice(parseInt(price)) // For total price
+    decreaseCartCount() // For total count
+  }
 }
+// Function for plus button
+function plusButton (e) {
+  const id = e.target.parentElement.parentElement.id
+  let value = parseInt(document.getElementById(id + 'number').value)
+  value++
+  if (value > 0) {
+    const price = parseInt(JSON.parse(localStorage.getItem(id)).price)
+    document.getElementById(id + 'number').value = value
+    document.getElementById(id + 'label').innerHTML = value * price
 
+    // Saving value of the quantity and the current product price for onload
+    localStorage.setItem(id + 'value', value)
+    localStorage.setItem(id + 'currentPrice', value * price)
+
+    increaseTotalPrice(price) // For total price
+    increaseCartCount() // For total count
+  }
+}
+// --------------------------------------------------------------------------------------
+
+// ----------------------------------- PAGINATION ----------------------------------------
+// Forward function for Pagintation
 function pageForward () {
   if (currentPage < 19) {
     start = start + 8
@@ -292,6 +326,7 @@ function pageForward () {
   }
 }
 
+// Backward function for Pagintation
 function pageBack () {
   if (currentPage > 1) {
     start = start - 8
@@ -305,5 +340,13 @@ function pageBack () {
     document.getElementById('pageBack').className = 'page-item disabled'
   }
 }
-// Calling all the initial functions
-onLoadCartState()
+// ------------------------- MISC ------------------------
+// For creating indexes after clear cart function
+function createIndex (end) {
+  let j = 1
+  for (let i = end - 8; i <= end; i++) {
+    localStorage.setItem('div-3' + j, i)
+    j++
+  }
+}
+// ----------------------------------------------------------
